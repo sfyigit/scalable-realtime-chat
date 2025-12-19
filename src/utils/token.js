@@ -2,11 +2,11 @@ const jwt = require('jsonwebtoken');
 const config = require('../config');
 
 module.exports.generateAccessToken = (payload) => {
-    // JWT standard claim'leri kullanarak
+    // Using JWT standard claims
     return jwt.sign(
         {
             sub: payload.userId,  // JWT standard: subject (user id)
-            userId: payload.userId, // Backward compatibility için
+            userId: payload.userId, // For backward compatibility
             ...(payload.email && { email: payload.email }),
             ...(payload.role && { role: payload.role }),
         },
@@ -16,7 +16,7 @@ module.exports.generateAccessToken = (payload) => {
 }
 
 module.exports.generateRefreshToken = (payload) => {
-    // Refresh token için sadece userId yeterli
+    // Only userId is sufficient for refresh token
     return jwt.sign(
         {
             sub: payload.userId,

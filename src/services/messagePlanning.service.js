@@ -3,13 +3,13 @@ const AutoMessage = require('../models/autoMessage.model');
 const logger = require('../utils/logger');
 
 /**
- * Aktif kullanıcıları eşleştirerek otomatik mesajlar planlar
- * Her gece saat 02:00'da çalışır
+ * Plans automatic messages by pairing active users
+ * Runs every night at 02:00
  */
 async function planMessages() {
     try {
         logger.info('[Message Planning] Starting message planning at', new Date().toISOString());
-        // Tüm aktif kullanıcıları çek
+        // Fetch all active users
         const activeUsers = await User.find({ isActive: true }).select('_id name');
         
         if (activeUsers.length < 2) {
@@ -17,14 +17,14 @@ async function planMessages() {
             return;
         }
 
-        // Kullanıcı listesini rastgele karıştır (Fisher-Yates shuffle)
+        // Randomly shuffle the user list (Fisher-Yates shuffle)
         const shuffledUsers = [...activeUsers];
         for (let i = shuffledUsers.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [shuffledUsers[i], shuffledUsers[j]] = [shuffledUsers[j], shuffledUsers[i]];
         }
 
-        // İkişerli gruplara ayırarak çiftler oluştur
+        // Create pairs by grouping into pairs of two
         const pairs = [];
         for (let i = 0; i < shuffledUsers.length - 1; i += 2) {
             pairs.push({
@@ -33,12 +33,12 @@ async function planMessages() {
             });
         }
 
-        // Eğer tek sayıda kullanıcı varsa, son kullanıcıyı ilk çiftin alıcısı yap
+        // If there's an odd number of users, make the last user the receiver of the first pair
         if (shuffledUsers.length % 2 === 1) {
             pairs[0].receiver = shuffledUsers[shuffledUsers.length - 1];
         }
 
-        // Her çift için mesaj içeriği hazırla ve sendDate belirle
+        // Prepare message content and set sendDate for each pair
         const now = new Date();
         const tomorrow = new Date(now);
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -46,26 +46,26 @@ async function planMessages() {
         const autoMessages = [];
 
         for (const pair of pairs) {
-            // sendDate'i yarın için rastgele bir saat olarak belirle
+            // Set sendDate to a random hour tomorrow
             const sendDate = new Date(tomorrow);
             
-            // Rastgele bir saat seç (0-23 arası)
+            // Select a random hour (0-23)
             const randomHour = Math.floor(Math.random() * 24);
             sendDate.setHours(randomHour, Math.floor(Math.random() * 60), 0, 0);
             
-            // sendDate'e göre mesaj içeriğini belirle
+            // Determine message content based on sendDate
             const sendHour = sendDate.getHours();
             let greeting;
             
             if (sendHour < 11) {
-                // 11:00'dan önce
-                greeting = `Günaydın ${pair.receiver.name}`;
+                // Before 11:00
+                greeting = `Good morning ${pair.receiver.name}`;
             } else if (sendHour >= 11 && sendHour < 16) {
-                // 11:00 - 16:00 arası
-                greeting = `İyi günler ${pair.receiver.name}`;
+                // Between 11:00 - 16:00
+                greeting = `Good day ${pair.receiver.name}`;
             } else {
-                // 16:00 - 05:00 arası (16:00'dan sonra veya 05:00'dan önce)
-                greeting = `İyi akşamlar ${pair.receiver.name}`;
+                // Between 16:00 - 05:00 (after 16:00 or before 05:00)
+                greeting = `Good evening ${pair.receiver.name}`;
             }
 
             autoMessages.push({
@@ -78,7 +78,7 @@ async function planMessages() {
             });
         }
 
-        // Tüm mesajları veritabanına kaydet
+        // Save all messages to database
         const savedMessages = await AutoMessage.insertMany(autoMessages);
         
         logger.info(`[Message Planning] Successfully planned ${savedMessages.length} messages`);

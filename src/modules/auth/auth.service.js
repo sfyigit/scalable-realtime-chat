@@ -17,13 +17,13 @@ module.exports.register = async (name, email, password) => {
     let accessToken = generateAccessToken({ userId: user._id, email: user.email });
     let refreshToken = generateRefreshToken({ userId: user._id });
     
-    // Refresh token'ı Redis'e kaydet
+    // Save refresh token to Redis
     try {
         const refreshTokenKey = `refreshToken:${user._id}`;
         await redisClient.set(refreshTokenKey, refreshToken, { EX: 7 * 24 * 60 * 60 });
     } catch (error) {
         logger.error('Redis operation error:', error);
-        // Redis hatası olsa bile kullanıcı kaydı başarılı, sadece refresh token saklanamadı
+        // User registration is successful even if Redis fails, only refresh token couldn't be stored
     }
     
     return { accessToken, refreshToken };
@@ -41,13 +41,13 @@ module.exports.login = async (email, password) => {
     let accessToken = generateAccessToken({ userId: user._id, email: user.email });
     let refreshToken = generateRefreshToken({ userId: user._id });
 
-    // Refresh token'ı Redis'e kaydet
+    // Save refresh token to Redis
     try {
         const refreshTokenKey = `refreshToken:${user._id}`;
         await redisClient.set(refreshTokenKey, refreshToken, { EX: 7 * 24 * 60 * 60 });
     } catch (error) {
         logger.error('Redis operation error:', error);
-        // Redis hatası olsa bile login başarılı, sadece refresh token saklanamadı
+        // Login is successful even if Redis fails, only refresh token couldn't be stored
     }
     
     return { accessToken, refreshToken };
@@ -55,23 +55,23 @@ module.exports.login = async (email, password) => {
 
 module.exports.logout = async (userId) => {
     try {
-        // Refresh token'ı Redis'ten silelim
+        // Delete refresh token from Redis
         console.log('Logout - userId in service:', userId);
         const refreshTokenKey = `refreshToken:${userId}`;
         await redisClient.del(refreshTokenKey);
     } catch (error) {
         logger.error('Redis operation error during logout:', error);
-        // Hata olsa bile logout işlemi devam etsin
+        // Continue logout process even if there's an error
     }
 };
 
 module.exports.refreshToken = async (refreshToken) => {
     try {
-        // Refresh token'ı verify edelim
+        // Verify refresh token
         const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret);
-        const userId = decoded.userId || decoded.sub; // sub (standard) veya userId (backward compatibility)
+        const userId = decoded.userId || decoded.sub; // sub (standard) or userId (backward compatibility)
         
-        // Redis'te saklanan refresh token ile karşılaştır
+        // Compare with stored refresh token in Redis
         const refreshTokenKey = `refreshToken:${userId}`;
         const storedRefreshToken = await redisClient.get(refreshTokenKey);
         
@@ -79,17 +79,17 @@ module.exports.refreshToken = async (refreshToken) => {
             throw new Error('Invalid refresh token');
         }
         
-        // Kullanıcının hala var olduğunu kontrol et
+        // Check if user still exists
         const user = await User.findById(userId);
         if (!user) {
             throw new Error('User not found');
         }
         
-        // Yeni token'lar oluştur
+        // Generate new tokens
         const newAccessToken = generateAccessToken({ userId: user._id, email: user.email });
         const newRefreshToken = generateRefreshToken({ userId: user._id });
         
-        // Yeni refresh token'ı Redis'e kaydet
+        // Save new refresh token to Redis
         await redisClient.set(refreshTokenKey, newRefreshToken, { EX: 7 * 24 * 60 * 60 });
         
         return { accessToken: newAccessToken, refreshToken: newRefreshToken };

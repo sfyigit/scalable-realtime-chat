@@ -1,6 +1,6 @@
 const API_BASE_URL = '/api/auth';
 
-// Token yönetimi
+// Token management
 const TokenManager = {
     getAccessToken: () => localStorage.getItem('accessToken'),
     setAccessToken: (token) => localStorage.setItem('accessToken', token),
@@ -8,7 +8,7 @@ const TokenManager = {
         localStorage.removeItem('accessToken');
     },
     
-    // Token'ın expire olup olmadığını kontrol et
+    // Check if token is expired
     isTokenExpired: (token) => {
         if (!token) return true;
         try {
@@ -20,12 +20,12 @@ const TokenManager = {
         }
     },
     
-    // Refresh token ile yeni access token al
+    // Get new access token with refresh token
     async refreshAccessToken() {
         try {
             const response = await fetch(`${API_BASE_URL}/refresh`, {
                 method: 'POST',
-                credentials: 'include', // Cookie'leri gönder
+                credentials: 'include', // Send cookies
                 headers: {
                     'Content-Type': 'application/json',
                 }
@@ -48,11 +48,11 @@ const TokenManager = {
         }
     },
     
-    // API isteği yap, token expire olursa otomatik refresh et
+    // Make API request, automatically refresh token if expired
     async makeRequest(url, options = {}) {
         let token = this.getAccessToken();
         
-        // Token expire olmuşsa refresh et
+        // Refresh token if expired
         if (this.isTokenExpired(token)) {
             token = await this.refreshAccessToken();
         }
@@ -72,7 +72,7 @@ const TokenManager = {
             credentials: 'include',
         });
         
-        // 401 hatası alırsak token'ı refresh et ve tekrar dene
+        // If we get 401 error, refresh token and retry
         if (response.status === 401 && token) {
             const newToken = await this.refreshAccessToken();
             headers['Authorization'] = `Bearer ${newToken}`;

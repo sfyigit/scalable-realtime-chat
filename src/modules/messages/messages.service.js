@@ -23,7 +23,7 @@ module.exports.getConversationMessages = async (conversationId, userId, page = 1
 };
 
 module.exports.markConversationAsRead = async (conversationId, userId) => {
-    // Conversation'ın var olduğunu ve kullanıcının katılımcı olduğunu kontrol et
+    // Check if conversation exists and user is a participant
     const conversation = await Conversation.findOne({
         _id: conversationId,
         participants: userId
@@ -33,18 +33,18 @@ module.exports.markConversationAsRead = async (conversationId, userId) => {
         throw new Error('Conversation not found or access denied');
     }
 
-    // Bu conversation'daki, bu kullanıcı tarafından gönderilmemiş ve henüz okunmamış tüm mesajları bul
+    // Find all unread messages in this conversation that were not sent by this user
     const unreadMessages = await Message.find({
         conversationId,
         senderId: { $ne: userId },
         'readBy.userId': { $ne: userId }
     });
 
-    // Her mesajı okundu işaretle
+    // Mark each message as read
     const now = new Date();
     const userIdStr = userId.toString();
     const updatePromises = unreadMessages.map(message => {
-        // Eğer bu kullanıcı zaten readBy listesinde değilse ekle
+        // Add this user to readBy list if not already present
         const alreadyRead = message.readBy.some(
             readEntry => {
                 if (!readEntry.userId) return false;

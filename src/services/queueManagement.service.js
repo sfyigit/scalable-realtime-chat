@@ -3,14 +3,14 @@ const { publishToSendingQueue } = require('../utils/rabbitmq');
 const logger = require('../utils/logger');
 
 /**
- * Gönderim zamanı gelen mesajları tespit edip RabbitMQ'ya yönlendirir
- * Her dakika çalışır
+ * Detects messages that have reached their send time and routes them to RabbitMQ
+ * Runs every minute
  */
 async function processQueue() {
     try {
         const now = new Date();
         
-        // sendDate'i geçmiş ve henüz kuyruğa alınmamış mesajları bul
+        // Find messages whose sendDate has passed and haven't been queued yet
         const messagesToQueue = await AutoMessage.find({
             sendDate: { $lte: now },
             isQueued: false,
@@ -24,7 +24,7 @@ async function processQueue() {
 
         logger.info(`[Queue Management] Found ${messagesToQueue.length} messages ready to queue`);
 
-        // Her mesajı RabbitMQ'ya gönder
+        // Send each message to RabbitMQ
         for (const autoMessage of messagesToQueue) {
             try {
                 const messageData = {
@@ -36,7 +36,7 @@ async function processQueue() {
 
                 await publishToSendingQueue(messageData);
 
-                // Mesajı isQueued: true olarak işaretle
+                // Mark message as isQueued: true
                 await AutoMessage.findByIdAndUpdate(autoMessage._id, {
                     isQueued: true
                 });
@@ -44,7 +44,7 @@ async function processQueue() {
                 console.log(`[Queue Management] Queued message ${autoMessage._id}`);
             } catch (error) {
                 logger.error(`[Queue Management] Error queueing message ${autoMessage._id}:`, error);
-                // Hata olsa bile devam et, diğer mesajları işle
+                // Continue even if there's an error, process other messages
             }
         }
 

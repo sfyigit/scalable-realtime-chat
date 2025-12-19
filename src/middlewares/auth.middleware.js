@@ -12,7 +12,7 @@ module.exports = (req, res, next) => {
     console.log('Auth middleware - token:', token);
     console.log('Auth middleware - secret:', config.jwt.secret);
     const decoded = jwt.verify(token, config.jwt.secret);
-    // Token'dan user bilgilerini çıkar ve req.user'a ekle
+    // Extract user information from token and add to req.user
     console.log('Auth middleware - decoded:', decoded);
     req.user = {
       userId: decoded.userId || decoded.sub,

@@ -35,7 +35,7 @@ const autoMessageSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-// İndeksler: sendDate ve isQueued kombinasyonu için
+// Indexes: for sendDate and isQueued combination
 autoMessageSchema.index({ sendDate: 1, isQueued: 1 });
 autoMessageSchema.index({ isSent: 1 });
 

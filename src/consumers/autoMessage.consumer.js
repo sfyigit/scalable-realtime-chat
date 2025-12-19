@@ -6,7 +6,7 @@ const { getIO } = require('../socket/socket');
 const logger = require('../utils/logger');
 
 /**
- * Kuyruktaki otomatik mesajları işleyerek alıcılara ulaştırır
+ * Processes automatic messages from the queue and delivers them to recipients
  */
 async function startAutoMessageConsumer() {
     await consumeSendingQueue(async (messageData) => {
@@ -15,14 +15,14 @@ async function startAutoMessageConsumer() {
 
             console.log(`[Auto Message Consumer] Processing message ${autoMessageId}`);
 
-            // Conversation'ı bul veya oluştur
+            // Find or create conversation
             let conversation = await Conversation.findOne({
                 type: 'direct',
                 participants: { $all: [senderId, receiverId], $size: 2 }
             });
 
             if (!conversation) {
-                // Yeni conversation oluştur
+                // Create new conversation
                 conversation = await Conversation.create({
                     participants: [senderId, receiverId],
                     type: 'direct'
@@ -30,40 +30,40 @@ async function startAutoMessageConsumer() {
                 console.log(`[Auto Message Consumer] Created new conversation ${conversation._id}`);
             }
 
-            // Yeni Message dökümanı oluştur ve veritabanına kaydet
+            // Create new Message document and save to database
             const message = await Message.create({
                 conversationId: conversation._id,
                 senderId: senderId,
                 content: content,
                 type: 'text',
-                readBy: [] // Otomatik mesajlar başlangıçta okunmamış
+                readBy: [] // Automatic messages are unread initially
             });
 
-            // Populate sender bilgisi
+            // Populate sender information
             await message.populate('senderId', 'name email');
 
-            // Conversation'ın lastMessage'ını güncelle
+            // Update conversation's lastMessage
             await Conversation.findByIdAndUpdate(conversation._id, {
                 lastMessage: message._id,
                 lastMessageAt: message.createdAt
             });
 
-            // Socket.IO üzerinden alıcıya message_received eventi ile anlık bildirim gönder
+            // Send instant notification to receiver via Socket.IO with message_received event
             const io = getIO();
             
-            // Alıcıya bildirim gönder
+            // Send notification to receiver
             io.to(`user:${receiverId}`).emit('message_received', {
                 message: message.toObject(),
                 conversationId: conversation._id.toString()
             });
 
-            // Conversation room'una da gönder
+            // Also send to conversation room
             io.to(`conversation:${conversation._id}`).emit('message_saved', {
                 message: message.toObject(),
                 conversationId: conversation._id.toString()
             });
 
-            // AutoMessage kaydını isSent: true olarak güncelle
+            // Update AutoMessage record as isSent: true
             await AutoMessage.findByIdAndUpdate(autoMessageId, {
                 isSent: true
             });
@@ -71,7 +71,7 @@ async function startAutoMessageConsumer() {
             console.log(`[Auto Message Consumer] Successfully processed message ${autoMessageId}`);
         } catch (error) {
             logger.error('[Auto Message Consumer] Error processing message:', error);
-            throw error; // Mesajı tekrar kuyruğa al
+            throw error; // Requeue the message
         }
     });
 }

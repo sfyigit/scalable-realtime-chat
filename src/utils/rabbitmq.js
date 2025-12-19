@@ -7,13 +7,13 @@ let channel = null;
 const QUEUE_NAME = 'messages';
 const MESSAGE_SENDING_QUEUE = 'message_sending_queue';
 
-// RabbitMQ bağlantısı
+// RabbitMQ connection
 async function connect() {
     try {
         connection = await amqp.connect(config.rabbitmq.url);
         channel = await connection.createChannel();
         
-        // Queue'ları oluştur (durable: true - mesajlar kalıcı olacak)
+        // Create queues (durable: true - messages will be persistent)
         await channel.assertQueue(QUEUE_NAME, {
             durable: true
         });
@@ -30,7 +30,7 @@ async function connect() {
     }
 }
 
-// Mesaj gönder (Producer)
+// Send message (Producer)
 async function publishMessage(messageData) {
     if (!channel) {
         await connect();
@@ -39,7 +39,7 @@ async function publishMessage(messageData) {
     try {
         const message = JSON.stringify(messageData);
         const sent = channel.sendToQueue(QUEUE_NAME, Buffer.from(message), {
-            persistent: true // Mesajlar disk'e yazılsın
+            persistent: true // Messages will be written to disk
         });
         
         if (!sent) {
@@ -54,7 +54,7 @@ async function publishMessage(messageData) {
     }
 }
 
-// Mesaj gönder (message_sending_queue için)
+// Send message (for message_sending_queue)
 async function publishToSendingQueue(messageData) {
     if (!channel) {
         await connect();
@@ -63,7 +63,7 @@ async function publishToSendingQueue(messageData) {
     try {
         const message = JSON.stringify(messageData);
         const sent = channel.sendToQueue(MESSAGE_SENDING_QUEUE, Buffer.from(message), {
-            persistent: true // Mesajlar disk'e yazılsın
+            persistent: true // Messages will be written to disk
         });
         
         if (!sent) {
@@ -78,14 +78,14 @@ async function publishToSendingQueue(messageData) {
     }
 }
 
-// Mesaj dinle (Consumer)
+// Listen for messages (Consumer)
 async function consumeMessages(callback) {
     if (!channel) {
         await connect();
     }
     
     try {
-        // Her mesajı sadece bir kez işle (ack gerektirir)
+        // Process each message only once (requires ack)
         await channel.prefetch(1);
         
         channel.consume(QUEUE_NAME, async (msg) => {
@@ -93,10 +93,10 @@ async function consumeMessages(callback) {
                 try {
                     const messageData = JSON.parse(msg.content.toString());
                     await callback(messageData);
-                    channel.ack(msg); // Mesaj başarıyla işlendi
+                    channel.ack(msg); // Message processed successfully
                 } catch (error) {
                     logger.error('Error processing message:', error);
-                    channel.nack(msg, false, true); // Mesajı tekrar kuyruğa al
+                    channel.nack(msg, false, true); // Requeue the message
                 }
             }
         });
@@ -108,14 +108,14 @@ async function consumeMessages(callback) {
     }
 }
 
-// Mesaj gönderim kuyruğunu dinle (message_sending_queue için)
+// Listen to message sending queue (for message_sending_queue)
 async function consumeSendingQueue(callback) {
     if (!channel) {
         await connect();
     }
     
     try {
-        // Her mesajı sadece bir kez işle (ack gerektirir)
+        // Process each message only once (requires ack)
         await channel.prefetch(1);
         
         channel.consume(MESSAGE_SENDING_QUEUE, async (msg) => {
@@ -123,10 +123,10 @@ async function consumeSendingQueue(callback) {
                 try {
                     const messageData = JSON.parse(msg.content.toString());
                     await callback(messageData);
-                    channel.ack(msg); // Mesaj başarıyla işlendi
+                    channel.ack(msg); // Message processed successfully
                 } catch (error) {
                     logger.error('Error processing message from sending queue:', error);
-                    channel.nack(msg, false, true); // Mesajı tekrar kuyruğa al
+                    channel.nack(msg, false, true); // Requeue the message
                 }
             }
         });
@@ -138,7 +138,7 @@ async function consumeSendingQueue(callback) {
     }
 }
 
-// Bağlantıyı kapat
+// Close connection
 async function close() {
     if (channel) {
         await channel.close();

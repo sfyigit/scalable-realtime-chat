@@ -80,7 +80,7 @@ const TokenManager = {
     }
 };
 
-// Socket.IO bağlantısı
+// Socket.IO connection
 function initializeSocket() {
     const token = TokenManager.getAccessToken();
     if (!token) {
@@ -97,8 +97,8 @@ function initializeSocket() {
 
     socket.on('connect', () => {
         console.log('Socket connected');
-        // Online kullanıcı listesi otomatik olarak socket bağlantısı tamamlandığında gönderilecek
-        // Ancak yine de manuel olarak isteyebiliriz (güvenlik için)
+        // Online user list will be automatically sent when socket connection is completed
+        // But we can still request it manually (for security)
         socket.emit('get_online_users');
     });
 
@@ -110,9 +110,9 @@ function initializeSocket() {
         console.error('Socket connection error:', error);
     });
 
-    // Online kullanıcı listesi
+    // Online user list
     socket.on('online_users_list', (data) => {
-        // Tüm userId'leri string'e çevir
+        // Convert all userIds to string
         onlineUsers = new Set(data.userIds.map(id => id.toString()));
         updateUserListOnlineStatus();
         updateChatHeaderStatus();
@@ -120,7 +120,7 @@ function initializeSocket() {
     });
 
     socket.on('user_online', (data) => {
-        // userId'yi string'e çevir
+        // Convert userId to string
         const userId = data.userId.toString();
         onlineUsers.add(userId);
         updateUserListOnlineStatus();
@@ -129,7 +129,7 @@ function initializeSocket() {
     });
 
     socket.on('user_offline', (data) => {
-        // userId'yi string'e çevir
+        // Convert userId to string
         const userId = data.userId.toString();
         onlineUsers.delete(userId);
         updateUserListOnlineStatus();
@@ -137,40 +137,40 @@ function initializeSocket() {
         updateOnlineOfflineLists();
     });
 
-    // Mesaj event'leri
+    // Message events
     socket.on('new_message', async (data) => {
         if (data.conversationId === currentConversationId) {
             displayMessage(data, false);
-            // Conversation'ı okundu işaretle (tüm mesajlar için)
+            // Mark conversation as read (for all messages)
             await markConversationAsRead(data.conversationId);
         } else {
-            // Conversation açık değilse, listeyi güncelle
+            // If conversation is not open, update the list
             await loadAllUsers();
         }
     });
 
-    // Yeni mesaj bildirimi (conversation'a katılmamış olsa bile)
+    // New message notification (even if not joined to conversation)
     socket.on('new_message_notification', async (data) => {
-        // Eğer bu conversation açık değilse, kullanıcı listesini güncelle
+        // If this conversation is not open, update user list
         if (data.conversationId !== currentConversationId) {
-            // Kullanıcı listesini yenile
+            // Refresh user list
             await loadAllUsers();
         } else {
-            // Eğer açıksa mesajı göster ve okundu işaretle
+            // If open, show message and mark as read
             displayMessage(data, false);
-            // Conversation'ı okundu işaretle
+            // Mark conversation as read
             await markConversationAsRead(data.conversationId);
         }
     });
 
-    // Mesaj gönderildi onayı
+    // Message sent confirmation
     socket.on('message_sent', async (data) => {
-        // Eğer yeni bir conversation oluşturulduysa
+        // If a new conversation was created
         if (data.conversation && data.conversationId) {
-            // Eğer henüz conversation açık değilse veya farklı bir conversation ise
+            // If conversation is not yet open or is a different conversation
             if (!currentConversationId || currentConversationId !== data.conversationId) {
                 currentConversationId = data.conversationId;
-                // Conversation'ı seç ve mesajları yükle
+                // Select conversation and load messages
                 const otherUser = data.conversation.participants.find(p => 
                     p._id && p._id.toString() !== currentUserId
                 );
@@ -178,23 +178,23 @@ function initializeSocket() {
                     await selectConversation(data.conversation, otherUser);
                 }
             }
-            // Kullanıcı listesini yenile
+            // Refresh user list
             await loadAllUsers();
         }
     });
 
     socket.on('message_saved', (data) => {
-        // Sadece geçici mesajı gerçek ID ile güncelle, yeni mesaj ekleme
+        // Only update temporary message with real ID, don't add new message
         const messagesContainer = document.getElementById('chatMessages');
         if (!messagesContainer || data.conversationId !== currentConversationId) return;
         
-        // Temp ID ile mesajı bul
+        // Find message with temp ID
         const tempMessages = messagesContainer.querySelectorAll('[data-message-id^="temp_"]');
         let messageElement = null;
         
-        // En son eklenen temp mesajı al (aynı conversation için)
+        // Get the most recently added temp message (for the same conversation)
         if (tempMessages.length > 0) {
-            // Mesaj içeriğine göre eşleştir
+            // Match by message content
             for (let i = tempMessages.length - 1; i >= 0; i--) {
                 const msg = tempMessages[i];
                 const content = msg.querySelector('.message-content')?.textContent;
@@ -206,14 +206,14 @@ function initializeSocket() {
         }
         
         if (messageElement) {
-            // Mesaj ID'sini güncelle
+            // Update message ID
             messageElement.setAttribute('data-message-id', data.message._id);
             messageElement.dataset.messageId = data.message._id;
         } else {
-            // Eğer temp mesaj bulunamadıysa, gerçek ID ile zaten var mı kontrol et
+            // If temp message not found, check if it already exists with real ID
             const existingMessage = messagesContainer.querySelector(`[data-message-id="${data.message._id}"]`);
             if (!existingMessage) {
-                // Mesaj yoksa ekle (nadir durum)
+                // Add message if it doesn't exist (rare case)
                 displayMessage(data.message, false);
             }
         }
@@ -297,11 +297,11 @@ function openEditUserModal() {
     const nameInput = document.getElementById('editUserName');
     const emailInput = document.getElementById('editUserEmail');
     
-    // Form alanlarını mevcut değerlerle doldur
+    // Fill form fields with current values
     nameInput.value = currentUser.name;
     emailInput.value = currentUser.email;
     
-    // Modal'ı göster
+    // Show modal
     modal.style.display = 'flex';
 }
 
@@ -339,7 +339,7 @@ async function updateUserInfo(event) {
         
         const data = await response.json();
         if (data.success) {
-            // Kullanıcı bilgilerini güncelle
+            // Update user information
             currentUser = data.data;
             currentUserId = currentUser._id;
             
@@ -347,10 +347,10 @@ async function updateUserInfo(event) {
             document.getElementById('currentUserEmail').textContent = currentUser.email;
             document.getElementById('currentUserAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
             
-            // Modal'ı kapat
+            // Close modal
             closeEditUserModal();
             
-            // Başarı mesajı (opsiyonel)
+            // Success message (optional)
             console.log('User updated successfully');
         }
     } catch (error) {
@@ -362,7 +362,7 @@ async function updateUserInfo(event) {
 // Load all users with conversations data
 async function loadAllUsers() {
     try {
-        // currentUserId kontrolü
+        // Check currentUserId
         if (!currentUserId) {
             console.warn('currentUserId not set, waiting...');
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -372,14 +372,14 @@ async function loadAllUsers() {
             }
         }
         
-        // Tüm kullanıcıları yükle
+        // Load all users
         const usersResponse = await TokenManager.makeRequest(`${API_BASE_URL}/user/list?limit=100`);
         if (!usersResponse.ok) throw new Error('Failed to load users');
         
         const usersData = await usersResponse.json();
         if (!usersData.success) return;
         
-        // Tüm conversation'ları yükle (lastMessageAt için)
+        // Load all conversations (for lastMessageAt)
         const conversationsResponse = await TokenManager.makeRequest(`${API_BASE_URL}/conversations`);
         let conversations = [];
         if (conversationsResponse.ok) {
@@ -401,24 +401,24 @@ async function displayAllUsersSorted(allUsers, conversations) {
     const onlineUsersContainer = document.getElementById('onlineUsersList');
     const offlineUsersContainer = document.getElementById('offlineUsersList');
     
-    // Tüm container'ları temizle
+    // Clear all containers
     onlineUsersContainer.innerHTML = '';
     offlineUsersContainer.innerHTML = '';
     
-    // Mevcut kullanıcıyı filtrele
+    // Filter current user
     const currentUserIdStr = (currentUserId?._id || currentUserId).toString();
     const availableUsers = allUsers.filter(user => {
         const userId = (user._id?._id || user._id).toString();
         return userId !== currentUserIdStr;
     });
     
-    // Her kullanıcı için conversation bilgisini bul ve lastMessageAt ekle
+    // Find conversation info for each user and add lastMessageAt
     const usersWithConversationData = availableUsers.map(user => {
         const userId = (user._id?._id || user._id).toString();
         
-        // Bu kullanıcı ile olan conversation'ı bul
+        // Find conversation with this user
         const conversation = conversations.find(conv => {
-            // Conversation'ın participants'ında hem currentUserId hem de userId olmalı
+            // Conversation's participants should include both currentUserId and userId
             const participantIds = conv.participants.map(p => {
                 const pId = (p._id?._id || p._id).toString();
                 return pId;
@@ -435,7 +435,7 @@ async function displayAllUsersSorted(allUsers, conversations) {
         };
     });
     
-    // Kullanıcıları online ve offline olarak ayır
+    // Separate users into online and offline
     const onlineUsersList = [];
     const offlineUsersList = [];
     
@@ -450,25 +450,25 @@ async function displayAllUsersSorted(allUsers, conversations) {
         }
     });
     
-    // Her listeyi lastMessageAt'e göre sırala (en yeni en üstte, conversation'ı olmayanlar en altta)
+    // Sort each list by lastMessageAt (newest on top, users without conversations at bottom)
     onlineUsersList.sort((a, b) => {
         if (!a.lastMessageAt && !b.lastMessageAt) return 0;
-        if (!a.lastMessageAt) return 1; // a'nın conversation'ı yok, en alta
-        if (!b.lastMessageAt) return -1; // b'nin conversation'ı yok, en alta
-        return b.lastMessageAt - a.lastMessageAt; // En yeni en üstte
+        if (!a.lastMessageAt) return 1; // a has no conversation, to bottom
+        if (!b.lastMessageAt) return -1; // b has no conversation, to bottom
+        return b.lastMessageAt - a.lastMessageAt; // Newest on top
     });
     
     offlineUsersList.sort((a, b) => {
         if (!a.lastMessageAt && !b.lastMessageAt) return 0;
-        if (!a.lastMessageAt) return 1; // a'nın conversation'ı yok, en alta
-        if (!b.lastMessageAt) return -1; // b'nin conversation'ı yok, en alta
-        return b.lastMessageAt - a.lastMessageAt; // En yeni en üstte
+        if (!a.lastMessageAt) return 1; // a has no conversation, to bottom
+        if (!b.lastMessageAt) return -1; // b has no conversation, to bottom
+        return b.lastMessageAt - a.lastMessageAt; // Newest on top
     });
     
-    // Online kullanıcı sayısını güncelle
+    // Update online user count
     document.getElementById('onlineCount').textContent = onlineUsersList.length;
     
-    // Online kullanıcıları ekle
+    // Add online users
     if (onlineUsersList.length > 0) {
         onlineUsersList.forEach(user => {
             const userItem = createUserListItemWithConversation(user);
@@ -478,7 +478,7 @@ async function displayAllUsersSorted(allUsers, conversations) {
         onlineUsersContainer.innerHTML = '<p style="padding: 20px; text-align: center; color: #667781; font-size: 14px;">No online users</p>';
     }
     
-    // Offline kullanıcıları ekle
+    // Add offline users
     if (offlineUsersList.length > 0) {
         offlineUsersList.forEach(user => {
             const userItem = createUserListItemWithConversation(user);
@@ -499,11 +499,11 @@ function createUserListItemWithConversation(user) {
         userItem.dataset.conversationId = user.conversation._id;
     }
     
-    // userId'yi string'e çevir ve kontrol et
+    // Convert userId to string and check
     const userIdStr = (user._id?._id || user._id).toString();
     const userIsOnline = onlineUsers.has(userIdStr);
     
-    // Son mesaj içeriğini hazırla
+    // Prepare last message content
     let lastMessageContent = user.email || 'No email';
     if (user.lastMessage) {
         if (typeof user.lastMessage === 'object' && user.lastMessage.content) {
@@ -527,7 +527,7 @@ function createUserListItemWithConversation(user) {
         </div>
     `;
     
-    // Click event: eğer conversation varsa onu seç, yoksa yeni başlat
+    // Click event: if conversation exists select it, otherwise start new one
     userItem.addEventListener('click', async () => {
         const currentUserIdStr = (currentUserId?._id || currentUserId).toString();
         if (user.conversation) {
@@ -551,20 +551,20 @@ async function selectUser(user) {
     try {
         selectedUserId = user._id;
         
-        // Önce mevcut conversation var mı kontrol et
+        // First check if existing conversation exists
         const existingConversation = await findExistingConversation(user._id);
         
         if (existingConversation) {
-            // Mevcut conversation'ı seç
+            // Select existing conversation
             const otherUser = existingConversation.participants.find(p => p._id !== currentUserId);
             if (otherUser) {
                 await selectConversation(existingConversation, otherUser);
-                // Kullanıcı listesini yenile
+                // Refresh user list
                 await loadAllUsers();
             }
         } else {
-            // Chat window'u göster ama conversation henüz oluşturulmadı
-            // Kullanıcı mesaj gönderdiğinde conversation otomatik oluşturulacak
+            // Show chat window but conversation hasn't been created yet
+            // Conversation will be automatically created when user sends a message
             document.getElementById('chatPlaceholder').style.display = 'none';
             document.getElementById('chatWindow').style.display = 'flex';
             
@@ -572,13 +572,13 @@ async function selectUser(user) {
             document.getElementById('chatUserName').textContent = user.name;
             document.getElementById('chatUserAvatar').textContent = user.name.charAt(0).toUpperCase();
             
-            // Mesajları temizle
+            // Clear messages
             document.getElementById('chatMessages').innerHTML = '<p style="text-align: center; color: #667781; padding: 20px;">Start a conversation!</p>';
             
-            // Online durumunu güncelle
+            // Update online status
             updateChatHeaderStatus();
             
-            // Conversation ID'yi sıfırla (henüz oluşturulmadı)
+            // Reset conversation ID (not created yet)
             currentConversationId = null;
         }
     } catch (error) {
@@ -613,7 +613,7 @@ function updateUserListOnlineStatus() {
         const userId = item.dataset.userId;
         if (!userId) return;
         
-        // userId'yi string'e çevir ve karşılaştır
+        // Convert userId to string and compare
         const userIdStr = userId.toString();
         const isOnline = onlineUsers.has(userIdStr);
         const avatar = item.querySelector('.user-item-avatar');
@@ -635,7 +635,7 @@ function updateUserListOnlineStatus() {
 
 // Update online/offline lists when status changes
 async function updateOnlineOfflineLists() {
-    // Tüm listeyi yeniden yükle
+    // Reload entire list
     await loadAllUsers();
 }
 
@@ -651,7 +651,7 @@ async function selectConversation(conversation, otherUser) {
     const activeItem = document.querySelector(`[data-conversation-id="${conversation._id}"]`);
     if (activeItem) activeItem.classList.add('active');
     
-    // Unread badge'i kaldır
+    // Remove unread badge
     const unreadBadge = activeItem?.querySelector('.unread-badge');
     if (unreadBadge) unreadBadge.remove();
     
@@ -664,7 +664,7 @@ async function selectConversation(conversation, otherUser) {
     document.getElementById('chatUserAvatar').textContent = otherUser.name.charAt(0).toUpperCase();
     updateChatHeaderStatus();
     
-    // Socket ile konuşmaya katıl
+    // Join conversation via socket
     if (socket) {
         socket.emit('join_conversation', conversation._id);
     }
@@ -672,7 +672,7 @@ async function selectConversation(conversation, otherUser) {
     // Load messages
     await loadMessages(conversation._id);
     
-    // Mesajları okundu işaretle
+    // Mark messages as read
     await markConversationAsRead(conversation._id);
 }
 
@@ -681,7 +681,7 @@ function updateChatHeaderStatus() {
     const statusElement = document.getElementById('chatUserStatus');
     if (!statusElement || !selectedUserId) return;
     
-    // selectedUserId'yi string'e çevir ve karşılaştır
+    // Convert selectedUserId to string and compare
     const userIdStr = selectedUserId.toString();
     const isOnline = onlineUsers.has(userIdStr);
     statusElement.textContent = isOnline ? 'Online' : 'Offline';
@@ -715,52 +715,52 @@ async function loadMessages(conversationId) {
 function displayMessage(message, isHistorical = false) {
     const messagesContainer = document.getElementById('chatMessages');
     
-    // Mesaj ID'sini al (temp ID veya gerçek ID)
+    // Get message ID (temp ID or real ID)
     const messageId = message._id || message.tempId;
     if (!messageId) return;
     
-    // Eğer bu mesaj zaten gösteriliyorsa, güncelle ama tekrar ekleme
+    // If this message is already displayed, update but don't add again
     const existingMessageById = messagesContainer.querySelector(`[data-message-id="${messageId}"]`);
     if (existingMessageById && !isHistorical) {
-        // Mesaj zaten var, sadece güncelle (read status vs)
+        // Message already exists, just update (read status etc)
         return;
     }
     
-    // Eğer gerçek ID varsa, gerçek ID ile de kontrol et
+    // If real ID exists, also check with real ID
     if (message._id && messageId !== message._id) {
         const existingMessageByRealId = messagesContainer.querySelector(`[data-message-id="${message._id}"]`);
         if (existingMessageByRealId) {
-            // Gerçek ID ile mesaj zaten var, temp ID'yi güncelle
+            // Message already exists with real ID, update temp ID
             existingMessageByRealId.dataset.messageId = message._id;
             return;
         }
     }
     
-    // Mesaj içeriğine ve zamanına göre de kontrol et (duplicate önleme)
+    // Also check by message content and time (prevent duplicates)
     if (!isHistorical) {
         const messageContent = message.content;
         const messageTime = message.createdAt || message.timestamp;
         const allMessages = messagesContainer.querySelectorAll('.message');
         
-        // Son 3 mesajı kontrol et (performans için)
+        // Check last 3 messages (for performance)
         const recentMessages = Array.from(allMessages).slice(-3);
         for (let msg of recentMessages) {
             const msgContent = msg.querySelector('.message-content')?.textContent;
-            // Aynı içerik varsa duplicate olabilir
+            // If same content exists, might be duplicate
             if (msgContent === messageContent) {
-                // Zaman kontrolü yap (eğer timestamp varsa)
+                // Check time (if timestamp exists)
                 if (messageTime) {
                     const msgTimeAttr = msg.dataset.timestamp;
                     if (msgTimeAttr) {
                         const msgTime = new Date(msgTimeAttr).getTime();
                         const newMsgTime = new Date(messageTime).getTime();
-                        // 10 saniye içinde aynı içerik varsa duplicate
+                        // If same content within 10 seconds, it's a duplicate
                         if (Math.abs(newMsgTime - msgTime) < 10000) {
                             return;
                         }
                     }
                 } else {
-                    // Zaman yoksa sadece içeriğe göre kontrol et (son mesajla aynıysa)
+                    // If no time, check only by content (if same as last message)
                     if (recentMessages.indexOf(msg) === recentMessages.length - 1) {
                         return;
                     }
@@ -775,7 +775,7 @@ function displayMessage(message, isHistorical = false) {
     const messageElement = document.createElement('div');
     messageElement.className = `message ${isSent ? 'sent' : 'received'}`;
     messageElement.dataset.messageId = messageId;
-    // Timestamp'i de sakla (duplicate kontrolü için)
+    // Also store timestamp (for duplicate check)
     if (message.createdAt || message.timestamp) {
         messageElement.dataset.timestamp = new Date(message.createdAt || message.timestamp).toISOString();
     }
@@ -786,7 +786,7 @@ function displayMessage(message, isHistorical = false) {
         minute: '2-digit'
     });
     
-    // Okundu durumu kontrolü
+    // Check read status
     const isRead = isSent && message.readBy && message.readBy.some(r => 
         r.userId && r.userId.toString() !== currentUserId
     );
@@ -829,8 +829,8 @@ function updateUnreadCount(conversationId) {
     const conversationItem = document.querySelector(`[data-conversation-id="${conversationId}"]`);
     if (!conversationItem) return;
     
-    // Burada unread count'u güncellemek için API'ye istek atılabilir
-    // Şimdilik basit bir gösterim
+    // API request can be made here to update unread count
+    // For now, simple display
 }
 
 // Typing indicator
@@ -947,7 +947,7 @@ function sendMessage() {
     
     if (!message || !socket) return;
     
-    // Eğer conversationId yoksa ama selectedUserId varsa, recipientId gönder
+    // If conversationId doesn't exist but selectedUserId exists, send recipientId
     const messageData = {
         content: message,
         type: 'text'
@@ -958,15 +958,15 @@ function sendMessage() {
     } else if (selectedUserId) {
         messageData.recipientId = selectedUserId;
     } else {
-        return; // Ne conversationId ne de selectedUserId var
+        return; // Neither conversationId nor selectedUserId exists
     }
     
-    // Socket ile mesaj gönder
+    // Send message via socket
     socket.emit('send_message', messageData);
     
     input.value = '';
     
-    // Typing'i durdur
+    // Stop typing
     if (socket && currentConversationId) {
         socket.emit('typing_stop', { conversationId: currentConversationId });
     }

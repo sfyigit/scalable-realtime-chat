@@ -4,7 +4,7 @@ const fs = require('fs');
 
 const logLevel = process.env.LOG_LEVEL || 'info';
 
-// Logs dizinini oluştur
+// Create logs directory
 const logsDir = path.join(__dirname, '../../logs');
 if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });

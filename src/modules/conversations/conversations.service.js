@@ -13,7 +13,7 @@ module.exports.createConversation = async (userId, participantIds, type = 'direc
         throw new Error('One or more participants not found');
     }
 
-    // Direct conversation için mevcut conversation var mı kontrol et
+    // Check if existing conversation exists for direct conversation
     if (type === 'direct') {
         const existing = await Conversation.findOne({
             type: 'direct',
@@ -48,7 +48,7 @@ module.exports.getUserConversations = async (userId, page = 1, limit = 20) => {
     .skip(skip)
     .limit(limit);
 
-    // Her conversation için okunmamış mesaj sayısını ekle
+    // Add unread message count for each conversation
     const conversationsWithUnread = await Promise.all(
         conversations.map(async (conv) => {
             const unreadCount = await Message.countDocuments({

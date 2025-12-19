@@ -12,7 +12,7 @@ const logger = require('./utils/logger');
 
 const port = config.port || 3000;
 
-// HTTP server oluştur
+// Create HTTP server
 const server = http.createServer(app);
 
 // MongoDB Connection
@@ -47,10 +47,10 @@ mongoose.connect(config.mongoUrl, {
         });
 })
 .then(() => {    
-    // Socket.IO başlat
+    // Initialize Socket.IO
     initializeSocket(server);
     
-    // Message consumer'ı başlat
+    // Start message consumer
     startMessageConsumer()
         .then(() => {
             logger.info('Message consumer started successfully');
@@ -60,7 +60,7 @@ mongoose.connect(config.mongoUrl, {
             logger.warn('Messages will be saved directly to DB if RabbitMQ is unavailable');
         });
     
-    // Auto message consumer'ı başlat
+    // Start auto message consumer
     startAutoMessageConsumer()
         .then(() => {
             logger.info('Auto message consumer started successfully');
@@ -69,10 +69,10 @@ mongoose.connect(config.mongoUrl, {
             logger.error('Error starting auto message consumer:', err);
         });
     
-    // Cron job'ları başlat
+    // Start cron jobs
     startAllCronJobs();
     
-    // Server'ı başlat
+    // Start server
     server.listen(port, '0.0.0.0', () => {
         logger.info(`Server is running on port ${port}`);
     });

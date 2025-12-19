@@ -4,11 +4,11 @@ const { processQueue } = require('./queueManagement.service');
 const logger = require('../utils/logger');
 
 /**
- * Mesaj Planlama Cron Job
- * Her gece saat 02:00'da çalışır
+ * Message Planning Cron Job
+ * Runs every night at 02:00
  */
 function startMessagePlanningCron() {
-    // Her gece saat 02:00'da çalış (0 2 * * *)
+    // Run every night at 02:00 (0 2 * * *)
     cron.schedule('0 2 * * *', async () => {
         logger.info('[Cron] Message Planning Job triggered at', new Date().toISOString());
         try {
@@ -18,18 +18,18 @@ function startMessagePlanningCron() {
         }
     }, {
         scheduled: true,
-        timezone: "Europe/Istanbul" // Türkiye saati
+        timezone: "Europe/Istanbul" // Turkey time
     });
 
     console.log('[Cron] Message Planning Job scheduled (02:00 AM daily)');
 }
 
 /**
- * Kuyruk Yönetimi Cron Job
- * Her dakika çalışır
+ * Queue Management Cron Job
+ * Runs every minute
  */
 function startQueueManagementCron() {
-    // Her dakika çalış (* * * * *)
+    // Run every minute (* * * * *)
     cron.schedule('* * * * *', async () => {
         try {
             await processQueue();
@@ -45,7 +45,7 @@ function startQueueManagementCron() {
 }
 
 /**
- * Tüm cron job'ları başlat
+ * Start all cron jobs
  */
 function startAllCronJobs() {
     startMessagePlanningCron();

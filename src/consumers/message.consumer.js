@@ -10,7 +10,7 @@ async function startMessageConsumer() {
             try {
                 const { conversationId, senderId, content, type, timestamp } = messageData;
 
-            // Mesajı DB'ye kaydet
+            // Save message to DB
             const message = await Message.create({
                 conversationId,
                 senderId,
@@ -22,16 +22,16 @@ async function startMessageConsumer() {
                 }]
             });
 
-            // Populate sender bilgisi
+            // Populate sender information
             await message.populate('senderId', 'name email');
 
-            // Conversation'ın lastMessage'ını güncelle
+            // Update conversation's lastMessage
             await Conversation.findByIdAndUpdate(conversationId, {
                 lastMessage: message._id,
                 lastMessageAt: message.createdAt
             });
 
-            // Socket.IO ile güncellenmiş mesajı gönder (gerçek ID ile)
+            // Send updated message via Socket.IO (with real ID)
             const io = getIO();
             io.to(`conversation:${conversationId}`).emit('message_saved', {
                 message: message.toObject(),
@@ -41,7 +41,7 @@ async function startMessageConsumer() {
             console.log(`Message saved to DB: ${message._id}`);
         } catch (error) {
                 logger.error('Error saving message to DB:', error);
-                throw error; // Mesajı tekrar kuyruğa al
+                throw error; // Requeue the message
             }
         });
     } catch (error) {

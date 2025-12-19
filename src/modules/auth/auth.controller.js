@@ -10,12 +10,12 @@ module.exports.register = async (req, res) => {
     try {
         const { accessToken, refreshToken } = await authService.register(name, email, password);
         
-        // RefreshToken'ı httpOnly cookie olarak gönder
+        // Send refresh token as httpOnly cookie
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 gün
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
         
         res.status(201).json({ 
@@ -32,12 +32,12 @@ module.exports.login = async (req, res) => {
     try {
         const { accessToken, refreshToken } = await authService.login(email, password);
         
-        // RefreshToken'ı httpOnly cookie olarak gönder
+        // Send refresh token as httpOnly cookie
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 gün
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
         
         res.status(200).json({ 
@@ -53,7 +53,7 @@ module.exports.logout = async (req, res) => {
     try {
         let userId = null;
 
-        // Kullanıcı ID'sini token'dan al (auth middleware'den geliyor olmalı)
+        // Get user ID from token (should come from auth middleware)
         const refreshToken = req.cookies?.refreshToken;
         if (refreshToken) {
             try {
@@ -65,16 +65,16 @@ module.exports.logout = async (req, res) => {
             }
         }
         
-        // Eğer auth middleware'den userId geliyorsa onu kullan
+        // Use userId from auth middleware if available
         if (!userId && req.user?.userId) {
             userId = req.user.userId;
         }
         
         if (userId) {
-            // Refresh token'ı sil
+            // Delete refresh token
             await authService.logout(userId);
             
-            // Socket bağlantılarını kes ve Redis'ten temizle
+            // Disconnect socket connections and clean up from Redis
             try {
                 const io = getIO();
                 const userIdStr = userId.toString();
@@ -82,10 +82,10 @@ module.exports.logout = async (req, res) => {
                 const ONLINE_USERS_KEY = 'online_users';
                 const userSocketsKey = `${USER_SOCKETS_PREFIX}${userIdStr}`;
                 
-                // Kullanıcının tüm socket'lerini Redis'ten al
+                // Get all user's sockets from Redis
                 const socketIds = await redisClient.sMembers(userSocketsKey);
                 
-                // Her socket'i disconnect et
+                // Disconnect each socket
                 if (io && socketIds.length > 0) {
                     socketIds.forEach(socketId => {
                         const socket = io.sockets.sockets.get(socketId);
@@ -95,21 +95,21 @@ module.exports.logout = async (req, res) => {
                     });
                 }
                 
-                // Redis'ten kullanıcının socket'lerini temizle
+                // Clear user's sockets from Redis
                 if (socketIds.length > 0) {
                     await redisClient.del(userSocketsKey);
                 }
                 
-                // Online users listesinden çıkar
+                // Remove from online users list
                 await redisClient.sRem(ONLINE_USERS_KEY, userIdStr);
                 
-                // Tüm kullanıcılara offline durumu bildir
+                // Notify all users of offline status
                 if (io) {
                     io.emit('user_offline', { userId: userIdStr });
                 }
             } catch (error) {
                 logger.error('Error disconnecting sockets during logout:', error);
-                // Hata olsa bile logout işlemi devam etsin
+                // Continue logout process even if there's an error
             }
         }
         
@@ -130,7 +130,7 @@ module.exports.logout = async (req, res) => {
 
 module.exports.refreshToken = async (req, res) => {
     try {
-        // Refresh token'ı cookie'den veya body'den al
+        // Get refresh token from cookie or body
         const refreshToken = req.cookies?.refreshToken;
         
         if (!refreshToken) {
@@ -139,12 +139,12 @@ module.exports.refreshToken = async (req, res) => {
         
         const { accessToken, refreshToken: newRefreshToken } = await authService.refreshToken(refreshToken);
         
-        // Yeni refresh token'ı httpOnly cookie olarak gönder
+        // Send new refresh token as httpOnly cookie
         res.cookie('refreshToken', newRefreshToken, {
             httpOnly: true,
             secure: true,
             sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 gün
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
         
         res.status(200).json({ 

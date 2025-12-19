@@ -1,58 +1,58 @@
-Gerçek Zamanlı Chat Uygulaması
+Real-Time Chat Application
 
-Realtime Messaging, modern web teknolojileri kullanılarak geliştirilmiş gerçek zamanlı scale edilebilir bir mesajlaşma uygulamasıdır. Kullanıcıların anlık mesajlaşma, online/offline durumu takibi ve mesaj okundu bilgisi gibi özellikleri içerir.
+Realtime Messaging is a scalable real-time messaging application developed using modern web technologies. It includes features such as instant messaging, online/offline status tracking, and message read receipts.
 
-## Özellikler
-- **Gerçek Zamanlı Mesajlaşma**: Socket.IO ile anlık mesaj gönderimi ve alma. 
-- **Multinode Yapı İle Ölçeklenebilirlik**: Socket.IO redis adapter ile çoklu sunucularda çalışabilme. 
-- **Kullanıcı Yönetimi**: Kayıt, giriş, profil güncelleme ve çıkış işlemleri
-- **Online/Offline Durumu**: Redis ile kullanıcıların gerçek zamanlı online durumu takibi
-- **Mesaj Okundu Bilgisi**: Mesajların okundu/okunmadı durumu takibi
-- **Mesaj Kuyruğu**: RabbitMQ ile mesaj işleme
-- **Responsive Tasarım**: Tasarım için hazır responsive bir html taslağı kullanıldı
-- **Güvenlik**: JWT tabanlı kimlik doğrulama ve rate limiting
-- **Loglama**: Pino ile error ve info loglama
-- **Otomatik Mesaj Planlama**:  Aktif kullanıcılar arasında otomatik mesajlaşma planlaması
+## Features
+- **Real-Time Messaging**: Instant message sending and receiving with Socket.IO. 
+- **Scalability with Multinode Architecture**: Ability to run on multiple servers with Socket.IO Redis adapter. 
+- **User Management**: Registration, login, profile update, and logout operations
+- **Online/Offline Status**: Real-time user online status tracking with Redis
+- **Message Read Receipts**: Tracking of read/unread message status
+- **Message Queue**: Message processing with RabbitMQ
+- **Responsive Design**: A ready-to-use responsive HTML template was used for the design
+- **Security**: JWT-based authentication and rate limiting
+- **Logging**: Error and info logging with Pino
+- **Automatic Message Scheduling**: Automatic messaging scheduling between active users
 
-## 🛠️ Teknoloji Stack'i
+## 🛠️ Technology Stack
 
 ### Backend
-- **Node.js & Express.js**: Web sunucusu ve API geliştirme
-- **MongoDB & Mongoose**: Veritabanı ve ODM
-- **Socket.IO**: Gerçek zamanlı iletişim
-- **Redis**: Online kullanıcı durumu ve session yönetimi
-- **RabbitMQ**: Mesaj kuyruğu yönetimi
-- **JWT**: Token tabanlı kimlik doğrulama (Access token, refresh token)
-- **Joi**: Veri validasyonu
-- **bcryptjs**: Şifre hashleme
+- **Node.js & Express.js**: Web server and API development
+- **MongoDB & Mongoose**: Database and ODM
+- **Socket.IO**: Real-time communication
+- **Redis**: Online user status and session management
+- **RabbitMQ**: Message queue management
+- **JWT**: Token-based authentication (Access token, refresh token)
+- **Joi**: Data validation
+- **bcryptjs**: Password hashing
 
 ### Frontend
-- **EJS Template Engine**: Sunucu tarafı render
-- **JavaScript**: İstemci tarafı mantık
-- **CSS**: Responsive tasarım
+- **EJS Template Engine**: Server-side rendering
+- **JavaScript**: Client-side logic
+- **CSS**: Responsive design
 
 ### DevOps
-- **Docker & Docker Compose**: Containerization ve servis yönetimi
+- **Docker & Docker Compose**: Containerization and service management
 
-## 📋 Gereksinimler
+## 📋 Requirements
 
-- Docker ve Docker Compose
+- Docker and Docker Compose
 
-## 🚀 Kurulum
+## 🚀 Installation
 
-### Docker ile Çalıştırma
+### Running with Docker
 
-1. Projeyi klonlayın:
+1. Clone the project:
 ```bash
 git clone https://github.com/sfyigit/realtime-messaging.git
 cd realtime-messaging
 ```
 
-2. `.env` dosyası oluşturun (cp .env.example .env):
+2. Create a `.env` file (cp .env.example .env):
 ```bash
 cp .env.example .env
 ```
-yada
+or
 
 ```env
 NODE_ENV=development
@@ -67,79 +67,79 @@ JWT_EXPIRES_IN=1h
 JWT_REFRESH_EXPIRES_IN=7d
 ```
 
-2. Docker Compose ile tüm servisleri başlatın:
+2. Start all services with Docker Compose:
 ```bash
 docker-compose up -d
 ```
 
-Bu komut şunları başlatır:
-- **Node.js Uygulaması**: `http://localhost:3000`
+This command starts:
+- **Node.js Application**: `http://localhost:3000`
 - **MongoDB**: `localhost:27017`
 - **Redis**: `localhost:6379`
 - **RabbitMQ Management UI**: `http://localhost:15672`
 
-3. Uygulamaya erişin:
+3. Access the application:
 ```
 http://localhost:3000
 ```
 
-## 📁 Proje Yapısı
+## 📁 Project Structure
 
 ```
 src/
-├── config.js              # Uygulama konfigürasyonu
-├── server.js              # Ana sunucu dosyası
-├── app.js                 # Express uygulama yapılandırması
-├── models/                # Mongoose modelleri
+├── config.js              # Application configuration
+├── server.js              # Main server file
+├── app.js                 # Express application configuration
+├── models/                # Mongoose models
 │   ├── user.model.js
 │   ├── conversation.model.js
 │   ├── message.model.js
 │   └── autoMessage.model.js
-├── modules/               # Modüler yapı
-│   ├── auth/             # Kimlik doğrulama
+├── modules/               # Modular structure
+│   ├── auth/             # Authentication
 │   │   ├── auth.routes.js
 │   │   ├── auth.controller.js
 │   │   ├── auth.service.js
 │   │   └── auth.schema.js
-│   ├── users/            # Kullanıcı yönetimi
+│   ├── users/            # User management
 │   │   ├── users.routes.js
 │   │   ├── users.controller.js
 │   │   └── users.service.js
-│   ├── conversations/    # Konuşma yönetimi
+│   ├── conversations/    # Conversation management
 │   │   ├── conversations.routes.js
 │   │   ├── conversations.controller.js
 │   │   └── conversations.service.js
-│   ├── messages/         # Mesaj yönetimi
+│   ├── messages/         # Message management
 │   │   ├── messages.routes.js
 │   │   ├── messages.controller.js
 │   │   └── messages.service.js
-│   └── views/            # View controller'ları
+│   └── views/            # View controllers
 │       ├── view.routes.js
 │       └── view.controller.js
-├── middlewares/           # Express middleware'leri
+├── middlewares/           # Express middlewares
 │   ├── auth.middleware.js
 │   ├── rateLimit.middleware.js
 │   └── validate.middleware.js
-├── socket/                # Socket.IO yapılandırması
+├── socket/                # Socket.IO configuration
 │   └── socket.js
-├── consumers/             # RabbitMQ consumer'ları
+├── consumers/             # RabbitMQ consumers
 │   ├── message.consumer.js
 │   └── autoMessage.consumer.js
-├── services/              # Servis katmanı
+├── services/              # Service layer
 │   ├── cronJobs.service.js
 │   ├── messagePlanning.service.js
 │   └── queueManagement.service.js
-├── utils/                 # Yardımcı fonksiyonlar
+├── utils/                 # Helper functions
 │   ├── logger.js
 │   ├── password.js
 │   ├── token.js
 │   ├── redis.js
 │   └── rabbitmq.js
-├── views/                 # EJS template'leri
+├── views/                 # EJS templates
 │   ├── login.ejs
 │   ├── register.ejs
 │   └── dashboard.ejs
-└── public/                # Statik dosyalar
+└── public/                # Static files
     ├── css/
     └── js/
 ```
@@ -147,42 +147,42 @@ src/
 ## 🔐 API Endpoints
 
 ### Authentication
-- `POST /api/auth/register` - Kullanıcı kaydı
-- `POST /api/auth/login` - Kullanıcı girişi
-- `POST /api/auth/logout` - Kullanıcı çıkışı (Auth gerekli)
-- `POST /api/auth/refresh` - Token yenileme
-- `GET /api/auth/me` - Mevcut kullanıcı bilgisi (Auth gerekli)
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout (Auth required)
+- `POST /api/auth/refresh` - Token refresh
+- `GET /api/auth/me` - Current user information (Auth required)
 
 ### Users
-- `GET /api/user/list` - Kullanıcı listesi (Auth gerekli)
-- `GET /api/user/:id` - Kullanıcı detayı (Auth gerekli)
-- `PATCH /api/user/me` - Profil güncelleme (Auth gerekli)
+- `GET /api/user/list` - User list (Auth required)
+- `GET /api/user/:id` - User details (Auth required)
+- `PATCH /api/user/me` - Profile update (Auth required)
 
 ### Conversations
-- `GET /api/conversations` - Kullanıcı konuşmaları (Auth gerekli)
-- `POST /api/conversations` - Yeni konuşma oluşturma (Auth gerekli)
-- `GET /api/conversations/:id` - Konuşma detayı (Auth gerekli)
+- `GET /api/conversations` - User conversations (Auth required)
+- `POST /api/conversations` - Create new conversation (Auth required)
+- `GET /api/conversations/:id` - Conversation details (Auth required)
 
 ### Messages
-- `GET /api/messages/conversation/:conversationId` - Konuşma mesajları (Auth gerekli)
-- `PATCH /api/messages/conversation/:conversationId/read` - Mesajları okundu işaretleme (Auth gerekli)
+- `GET /api/messages/conversation/:conversationId` - Conversation messages (Auth required)
+- `PATCH /api/messages/conversation/:conversationId/read` - Mark messages as read (Auth required)
 
 ### Views
-- `GET /` - Ana sayfa (login sayfasına yönlendirir)
-- `GET /register` - Kayıt sayfası
-- `GET /login` - Giriş sayfası
-- `GET /dashboard` - Dashboard sayfası
+- `GET /` - Home page (redirects to login page)
+- `GET /register` - Registration page
+- `GET /login` - Login page
+- `GET /dashboard` - Dashboard page
 
-## 🎯 Kullanım
+## 🎯 Usage
 
-1. **Kayıt Ol**: `/register` sayfasından yeni bir hesap oluşturun
-2. **Giriş Yap**: `/login` sayfasından giriş yapın
-3. **Mesajlaş**: Dashboard'dan bir kullanıcı seçip mesajlaşmaya başlayın
-4. **Profil Güncelle**: İsminizin yanındaki kalem ikonuna tıklayarak profil bilgilerinizi güncelleyin
+1. **Register**: Create a new account from the `/register` page
+2. **Login**: Log in from the `/login` page
+3. **Chat**: Select a user from the dashboard and start messaging
+4. **Update Profile**: Click the pencil icon next to your name to update your profile information
 
-## 🔧 Geliştirme Notları
+## 🔧 Development Notes
 
-- Validasyonlar için **Joi** kütüphanesi kullanıldı.
-- Frontend geliştirmeleri için **Express.js EJS template engine** kullanıldı.
-- Nodemon ile canlı reload desteği mevcuttur (Docker içinde).
-- Socket.IO Redis adapter ile ölçeklenebilir yapı sağlanmıştır.
+- **Joi** library was used for validations.
+- **Express.js EJS template engine** was used for frontend development.
+- Live reload support is available with Nodemon (inside Docker).
+- Scalable architecture is provided with Socket.IO Redis adapter.

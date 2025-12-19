@@ -32,7 +32,7 @@ module.exports.getUserList = async (page = 1, limit = 10) => {
 module.exports.updateUser = async (userId, updateData) => {
     const { name, email } = updateData;
     
-    // Email'in başka bir kullanıcı tarafından kullanılıp kullanılmadığını kontrol et
+    // Check if email is already used by another user
     if (email) {
         const existingUser = await User.findOne({ 
             email, 
@@ -43,12 +43,12 @@ module.exports.updateUser = async (userId, updateData) => {
         }
     }
     
-    // Güncelleme verilerini hazırla
+    // Prepare update data
     const updateFields = {};
     if (name) updateFields.name = name;
     if (email) updateFields.email = email;
     
-    // Kullanıcıyı güncelle
+    // Update user
     const user = await User.findByIdAndUpdate(
         userId,
         { $set: updateFields },

@@ -3,7 +3,7 @@ const router = express.Router();
 const { getUserList, getUserById, updateUser } = require('./users.controller');
 const authMiddleware = require('../../middlewares/auth.middleware');
 
-// Tüm route'lar authentication gerektirir
+// All routes require authentication
 router.use(authMiddleware);
 
 router.get('/list', getUserList);

@@ -14,21 +14,21 @@ const USER_SOCKETS_PREFIX = 'user_sockets:';
 
 // Redis helper functions
 async function addUserSocket(userId, socketId) {
-    // userId'yi string'e çevir
+    // Convert userId to string
     const userIdStr = userId.toString();
     const userSocketsKey = `${USER_SOCKETS_PREFIX}${userIdStr}`;
     
-    // Kullanıcının socket'lerini Redis'e ekle
+    // Add user's sockets to Redis
     await redisClient.sAdd(userSocketsKey, socketId);
     
-    // Socket için TTL ayarla (30 dakika - disconnect durumunda temizlik için)
+    // Set TTL for socket (30 minutes - for cleanup on disconnect)
     await redisClient.expire(userSocketsKey, 1800);
     
-    // Eğer bu kullanıcının ilk socket'i ise online_users set'ine ekle
+    // If this is the user's first socket, add to online_users set
     const socketCount = await redisClient.sCard(userSocketsKey);
     if (socketCount === 1) {
         await redisClient.sAdd(ONLINE_USERS_KEY, userIdStr);
-        // Tüm kullanıcılara online durumu bildir
+        // Notify all users of online status
         if (io) {
             io.emit('user_online', { userId: userIdStr });
         }
@@ -36,18 +36,18 @@ async function addUserSocket(userId, socketId) {
 }
 
 async function removeUserSocket(userId, socketId) {
-    // userId'yi string'e çevir
+    // Convert userId to string
     const userIdStr = userId.toString();
     const userSocketsKey = `${USER_SOCKETS_PREFIX}${userIdStr}`;
     
-    // Socket'i kullanıcının socket set'inden çıkar
+    // Remove socket from user's socket set
     await redisClient.sRem(userSocketsKey, socketId);
     
-    // Eğer bu kullanıcının son socket'i ise online_users set'inden çıkar
+    // If this is the user's last socket, remove from online_users set
     const socketCount = await redisClient.sCard(userSocketsKey);
     if (socketCount === 0) {
         await redisClient.sRem(ONLINE_USERS_KEY, userIdStr);
-        // Tüm kullanıcılara offline durumu bildir
+        // Notify all users of offline status
         if (io) {
             io.emit('user_offline', { userId: userIdStr });
         }
@@ -64,7 +64,7 @@ async function getOnlineUsers() {
     }
 }
 
-// Socket.IO başlat
+// Initialize Socket.IO
 function initializeSocket(server) {
     io = new Server(server, {
         cors: {
@@ -74,7 +74,7 @@ function initializeSocket(server) {
         transports: ['websocket', 'polling']
     });
 
-    // Redis adapter ile cluster desteği
+    // Cluster support with Redis adapter
     const pubClient = redisClient.duplicate();
     const subClient = redisClient.duplicate();
     
@@ -110,15 +110,15 @@ function initializeSocket(server) {
     io.on('connection', async (socket) => {
         console.log(`User connected: ${socket.userId} (${socket.id})`);
 
-        // Kullanıcıyı kendi room'una ekle
+        // Add user to their own room
         socket.join(`user:${socket.userId}`);
 
-        // Redis'e online kullanıcı olarak ekle
+        // Add user to Redis as online
         try {
             await addUserSocket(socket.userId, socket.id);
             
-            // Kullanıcı Redis'e eklendikten sonra online kullanıcı listesini otomatik gönder
-            // Bu sayede kullanıcı her zaman kendi online durumunu görebilir
+            // Automatically send online user list after user is added to Redis
+            // This way the user can always see their own online status
             try {
                 const onlineUserIds = await getOnlineUsers();
                 socket.emit('online_users_list', { userIds: onlineUserIds });
@@ -128,7 +128,7 @@ function initializeSocket(server) {
             }
         } catch (error) {
             logger.error('Error adding user to online list:', error);
-            // Hata olsa bile online kullanıcı listesini gönder
+            // Send online user list even if there's an error
             try {
                 const onlineUserIds = await getOnlineUsers();
                 socket.emit('online_users_list', { userIds: onlineUserIds });
@@ -137,7 +137,7 @@ function initializeSocket(server) {
             }
         }
 
-        // Online kullanıcı listesini iste (manuel istek için - refresh durumunda)
+        // Request online user list (for manual request - on refresh)
         socket.on('get_online_users', async () => {
             try {
                 const onlineUserIds = await getOnlineUsers();
@@ -148,10 +148,10 @@ function initializeSocket(server) {
             }
         });
 
-        // Konuşmaya katıl
+        // Join conversation
         socket.on('join_conversation', async (conversationId) => {
             try {
-                // Kullanıcının bu konuşmaya erişimi var mı kontrol et
+                // Check if user has access to this conversation
                 const conversation = await Conversation.findOne({
                     _id: conversationId,
                     participants: socket.userId
@@ -171,13 +171,13 @@ function initializeSocket(server) {
             }
         });
 
-        // Konuşmadan ayrıl
+        // Leave conversation
         socket.on('leave_conversation', (conversationId) => {
             socket.leave(`conversation:${conversationId}`);
             console.log(`User ${socket.userId} left conversation ${conversationId}`);
         });
 
-        // Mesaj gönder
+        // Send message
         socket.on('send_message', async (data) => {
             try {
                 const { conversationId, recipientId, content, type = 'text' } = data;
@@ -191,15 +191,15 @@ function initializeSocket(server) {
                 let conversation = null;
                 let finalConversationId = conversationId;
 
-                // Eğer conversationId yoksa, recipientId ile conversation oluştur veya bul
+                // If conversationId doesn't exist, create or find conversation with recipientId
                 if (!conversationId && recipientId) {
-                    // Mevcut conversation var mı kontrol et
+                    // Check if existing conversation exists
                     conversation = await Conversation.findOne({
                         type: 'direct',
                         participants: { $all: [socket.userId, recipientId], $size: 2 }
                     });
 
-                    // Eğer conversation yoksa oluştur
+                    // Create conversation if it doesn't exist
                     if (!conversation) {
                         const conversationsService = require('../modules/conversations/conversations.service');
                         conversation = await conversationsService.createConversation(
@@ -207,12 +207,12 @@ function initializeSocket(server) {
                             [recipientId],
                             'direct'
                         );
-                        // Conversation'ı populate et
+                        // Populate conversation
                         await conversation.populate('participants', 'name email');
                     }
                     finalConversationId = conversation._id.toString();
                 } else {
-                    // Kullanıcının bu konuşmaya erişimi var mı kontrol et
+                    // Check if user has access to this conversation
                     conversation = await Conversation.findOne({
                         _id: conversationId,
                         participants: socket.userId
@@ -222,11 +222,11 @@ function initializeSocket(server) {
                         socket.emit('error', { message: 'Conversation not found or access denied' });
                         return;
                     }
-                    // Conversation'ı populate et
+                    // Populate conversation
                     await conversation.populate('participants', 'name email');
                 }
 
-                // Mesajı RabbitMQ'ya gönder
+                // Send message to RabbitMQ
                 const messageData = {
                     conversationId: finalConversationId,
                     senderId: socket.userId,
@@ -238,14 +238,14 @@ function initializeSocket(server) {
                 let savedMessage = null;
                 let useRabbitMQ = true;
 
-                // RabbitMQ'ya göndermeyi dene
+                // Try to send to RabbitMQ
                 try {
                     await publishMessage(messageData);
                 } catch (error) {
                     logger.error('Error publishing to RabbitMQ, saving directly to DB:', error);
                     useRabbitMQ = false;
                     
-                    // Fallback: Mesajı doğrudan DB'ye kaydet
+                    // Fallback: Save message directly to DB
                     try {
                         savedMessage = await Message.create({
                             conversationId: finalConversationId,
@@ -258,10 +258,10 @@ function initializeSocket(server) {
                             }]
                         });
 
-                        // Populate sender bilgisi
+                        // Populate sender information
                         await savedMessage.populate('senderId', 'name email');
 
-                        // Conversation'ın lastMessage'ını güncelle
+                        // Update conversation's lastMessage
                         await Conversation.findByIdAndUpdate(finalConversationId, {
                             lastMessage: savedMessage._id,
                             lastMessageAt: savedMessage.createdAt
@@ -275,33 +275,33 @@ function initializeSocket(server) {
                     }
                 }
 
-                // Mesajı hemen tüm katılımcılara gönder (real-time)
+                // Send message immediately to all participants (real-time)
                 let messagePayload;
                 
                 if (savedMessage) {
-                    // DB'ye kaydedilmiş mesaj (fallback durumu)
+                    // Message saved to DB (fallback case)
                     messagePayload = {
                         ...savedMessage.toObject(),
                         conversationId: finalConversationId
                     };
                 } else {
-                    // RabbitMQ'ya gönderilmiş, consumer DB'ye kaydedecek
+                    // Sent to RabbitMQ, consumer will save to DB
                     messagePayload = {
                         ...messageData,
-                        _id: `temp_${Date.now()}`, // Geçici ID
+                        _id: `temp_${Date.now()}`, // Temporary ID
                         senderId: {
                             _id: socket.userId,
-                            name: socket.email, // Gerçek kullanıcı bilgisi consumer'dan gelecek
+                            name: socket.email, // Real user info will come from consumer
                             email: socket.email
                         },
                         createdAt: messageData.timestamp
                     };
                 }
 
-                // Konuşmadaki tüm katılımcılara gönder (conversation room'una)
+                // Send to all participants in the conversation (conversation room)
                 io.to(`conversation:${finalConversationId}`).emit('new_message', messagePayload);
 
-                // Eğer mesaj DB'ye kaydedildiyse, message_saved event'i de gönder
+                // If message was saved to DB, also send message_saved event
                 if (savedMessage) {
                     io.to(`conversation:${finalConversationId}`).emit('message_saved', {
                         message: savedMessage.toObject(),
@@ -309,11 +309,11 @@ function initializeSocket(server) {
                     });
                 }
 
-                // Ayrıca her katılımcıya kendi user room'una da gönder (bildirim için)
-                // Böylece conversation'a katılmamış olsalar bile mesajı alabilirler
+                // Also send to each participant's own user room (for notifications)
+                // This way they can receive the message even if they haven't joined the conversation
                 conversation.participants.forEach(participant => {
                     if (participant._id.toString() !== socket.userId) {
-                        // Alıcıya bildirim gönder
+                        // Send notification to receiver
                         io.to(`user:${participant._id}`).emit('new_message_notification', {
                             ...messagePayload,
                             conversation: {
@@ -324,7 +324,7 @@ function initializeSocket(server) {
                     }
                 });
 
-                // Gönderen kullanıcıya onay gönder
+                // Send confirmation to sender
                 socket.emit('message_sent', { 
                     tempId: messagePayload._id, 
                     conversationId: finalConversationId,
@@ -354,12 +354,12 @@ function initializeSocket(server) {
             });
         });
 
-        // Mesaj okundu işaretle
+        // Mark message as read
         socket.on('mark_as_read', async (data) => {
             try {
                 const { messageId, conversationId } = data;
                 
-                // Socket event olarak gönder (DB işlemi için endpoint kullanılabilir)
+                // Send as socket event (endpoint can be used for DB operation)
                 io.to(`conversation:${conversationId}`).emit('message_read', {
                     messageId,
                     userId: socket.userId
@@ -373,7 +373,7 @@ function initializeSocket(server) {
         socket.on('disconnect', async () => {
             console.log(`User disconnected: ${socket.userId} (${socket.id})`);
             
-            // Redis'ten online kullanıcı listesinden çıkar
+            // Remove from online user list in Redis
             try {
                 await removeUserSocket(socket.userId, socket.id);
             } catch (error) {
@@ -385,7 +385,7 @@ function initializeSocket(server) {
     return io;
 }
 
-// Socket.IO instance'ını dışa aktar
+// Export Socket.IO instance
 function getIO() {
     if (!io) {
         throw new Error('Socket.IO not initialized. Call initializeSocket first.');
