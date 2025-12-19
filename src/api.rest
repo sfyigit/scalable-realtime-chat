@@ -1,0 +1,125 @@
+### ============================================
+### Authentication Endpoints
+### ============================================
+
+### Register User
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+###
+
+### Login User
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+###
+
+### Logout User
+POST http://localhost:3000/api/auth/logout
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+###
+
+### Refresh Token
+POST http://localhost:3000/api/auth/refresh
+Content-Type: application/json
+
+###
+
+### Get Current User
+GET http://localhost:3000/api/auth/me
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+###
+
+### ============================================
+### Users Endpoints
+### ============================================
+
+### Get User List
+GET http://localhost:3000/api/user/list?page=1&limit=10
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+###
+
+### Get User By ID
+GET http://localhost:3000/api/user/USER_ID_HERE
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+###
+
+### Update Current User Profile
+PATCH http://localhost:3000/api/user/me
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+{
+  "name": "Updated Name",
+  "email": "updated@example.com"
+}
+
+###
+
+### ============================================
+### Conversations Endpoints
+### ============================================
+
+### Get User Conversations
+GET http://localhost:3000/api/conversations?page=1&limit=20
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+###
+
+### Create New Conversation
+POST http://localhost:3000/api/conversations
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+{
+  "participantIds": ["USER_ID_1", "USER_ID_2"],
+  "type": "direct",
+  "name": "Conversation Name"
+}
+
+###
+
+### Get Conversation By ID
+GET http://localhost:3000/api/conversations/CONVERSATION_ID_HERE
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+###
+
+### ============================================
+### Messages Endpoints
+### ============================================
+
+### Get Conversation Messages
+GET http://localhost:3000/api/messages/conversation/CONVERSATION_ID_HERE?page=1&limit=50
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+###
+
+### Mark Conversation Messages as Read
+PATCH http://localhost:3000/api/messages/conversation/CONVERSATION_ID_HERE/read
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+###

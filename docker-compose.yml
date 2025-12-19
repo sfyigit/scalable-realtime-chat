@@ -1,0 +1,68 @@
+services:
+  app:
+    build:
+      context: .
+      target: development
+    container_name: node_app
+    volumes:
+      - .:/app        # nodemon ile canlı reload
+      - /app/node_modules
+      - ./logs:/app/logs
+    ports:
+      - "3000:3000"
+    environment:
+      MONGO_URL: mongodb://admin:password123@mongo:27017/realtime-messaging?authSource=admin
+      REDIS_HOST: redis
+      RABBITMQ_URL: amqp://rabbitmq
+      CHOKIDAR_USEPOLLING: "true"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+    command: mongod --auth
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672" # UI
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmqctl status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+volumes:
+  mongo_data:
