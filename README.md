@@ -34,54 +34,16 @@ Realtime Messaging is a scalable real-time messaging application developed using
 ### DevOps
 - **Docker & Docker Compose**: Containerization and service management
 
-## 📋 Requirements
+## 🚀 Quick Start
 
-- Docker and Docker Compose
-
-## 🚀 Installation
-
-### Running with Docker
-
-1. Clone the project:
 ```bash
-git clone https://github.com/sfyigit/realtime-messaging.git
-cd realtime-messaging
-```
-
-2. Create a `.env` file (cp .env.example .env):
-```bash
-cp .env.example .env
-```
-or
-
-```env
-NODE_ENV=development
-PORT=3000
-MONGO_URL=mongodb://admin:password123@localhost:27017/realtime-messaging?authSource=admin
-REDIS_HOST=redis
-REDIS_PORT=6379
-RABBITMQ_URL=amqp://rabbitmq
-JWT_SECRET=your-secret-key
-JWT_REFRESH_SECRET=your-refresh-secret-key
-JWT_EXPIRES_IN=1h
-JWT_REFRESH_EXPIRES_IN=7d
-```
-
-2. Start all services with Docker Compose:
-```bash
+git clone https://github.com/sfyigit/scalable-realtime-chat.git
+cd scalable-realtime-chat
+cp .env.example .env  # Configure your environment variables
 docker-compose up -d
 ```
 
-This command starts:
-- **Node.js Application**: `http://localhost:3000`
-- **MongoDB**: `localhost:27017`
-- **Redis**: `localhost:6379`
-- **RabbitMQ Management UI**: `http://localhost:15672`
-
-3. Access the application:
-```
-http://localhost:3000
-```
+Access the application at `http://localhost:3000`
 
 ## 📁 Project Structure
 
